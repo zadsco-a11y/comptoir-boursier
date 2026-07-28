@@ -5,6 +5,11 @@
 
 import { getStore } from "@netlify/blobs";
 
+// Doit rester identique à ADMIN_PASSCODE dans public/index.html.
+// C'est ce qui protège réellement les routes d'administration côté serveur
+// (et pas seulement l'écran de connexion admin).
+const ADMIN_PASSCODE = "formateur2026";
+
 const DEFAULT_CONFIG = {
   stocks: [
     { symbol: "LUM", name: "Lumière Éclat", sector: "Maquillage", price: 4200 },
@@ -19,6 +24,7 @@ const DEFAULT_CONFIG = {
   startCash: 500000,
   tickIntervalSec: 4,
   volatility: 0.06,
+  showLeaderboard: true,
   marketStartTime: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -28,6 +34,9 @@ function json(data, status = 200) {
     status,
     headers: { "content-type": "application/json" },
   });
+}
+function isAdmin(req) {
+  return req.headers.get("x-admin-passcode") === ADMIN_PASSCODE;
 }
 
 export default async (req) => {
@@ -48,6 +57,7 @@ export default async (req) => {
         return json(config);
       }
       if (method === "PUT") {
+        if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
         const body = await req.json();
         if (!body.config || !Array.isArray(body.config.stocks)) {
           return json({ error: "config invalide" }, 400);
@@ -59,9 +69,25 @@ export default async (req) => {
       }
     }
 
-    // ---- /api/trainees (liste complète, pour l'admin) ----
+    // ---- /api/leaderboard (public, mais respecte le réglage admin) ----
+    if (parts[1] === "leaderboard" && method === "GET") {
+      const config = await store.get("config", { type: "json" });
+      if (!config || !config.showLeaderboard) {
+        return json({ error: "classement désactivé" }, 403);
+      }
+      const { blobs } = await store.list({ prefix: "trainee:" });
+      const results = [];
+      for (const b of blobs) {
+        const t = await store.get(b.key, { type: "json" });
+        if (t) results.push({ name: t.name, cash: t.cash, holdings: t.holdings || {} });
+      }
+      return json(results);
+    }
+
+    // ---- /api/trainees (liste complète, réservée à l'admin) ----
     if (parts[1] === "trainees") {
       if (method === "GET") {
+        if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
         const { blobs } = await store.list({ prefix: "trainee:" });
         const results = [];
         for (const b of blobs) {
@@ -71,6 +97,7 @@ export default async (req) => {
         return json(results);
       }
       if (method === "DELETE") {
+        if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
         const { blobs } = await store.list({ prefix: "trainee:" });
         for (const b of blobs) await store.delete(b.key);
         return json({ ok: true });
@@ -91,6 +118,63 @@ export default async (req) => {
         const trainee = { ...body, id, updatedAt: Date.now() };
         await store.setJSON(key, trainee);
         return json(trainee);
+      }
+      if (method === "DELETE") {
+        if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
+        await store.delete(key);
+        return json({ ok: true });
+      }
+    }
+
+    // ---- /api/messages (messagerie stagiaire → administrateur) ----
+    if (parts[1] === "messages") {
+      if (method === "GET") {
+        if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
+        const { blobs } = await store.list({ prefix: "message:" });
+        const results = [];
+        for (const b of blobs) {
+          const m = await store.get(b.key, { type: "json" });
+          if (m) results.push(m);
+        }
+        results.sort((a, b) => b.createdAt - a.createdAt);
+        return json(results);
+      }
+      if (method === "POST") {
+        const body = await req.json();
+        const text = (body.text || "").trim().slice(0, 1000);
+        const traineeName = (body.traineeName || "").trim().slice(0, 60);
+        if (!text || !traineeName) return json({ error: "message invalide" }, 400);
+        const id = crypto.randomUUID();
+        const message = {
+          id,
+          traineeId: (body.traineeId || "").trim(),
+          traineeName,
+          text,
+          read: false,
+          createdAt: Date.now(),
+        };
+        await store.setJSON("message:" + id, message);
+        return json(message);
+      }
+      if (method === "DELETE") {
+        if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
+        const { blobs } = await store.list({ prefix: "message:" });
+        for (const b of blobs) await store.delete(b.key);
+        return json({ ok: true });
+      }
+    }
+
+    // ---- /api/message/:id ----
+    if (parts[1] === "message" && parts[2]) {
+      if (!isAdmin(req)) return json({ error: "non autorisé" }, 401);
+      const id = decodeURIComponent(parts[2]);
+      const key = "message:" + id;
+      if (method === "PUT") {
+        const existing = await store.get(key, { type: "json" });
+        if (!existing) return json({ error: "message introuvable" }, 404);
+        const updated = { ...existing, read: true };
+        await store.setJSON(key, updated);
+        return json(updated);
       }
       if (method === "DELETE") {
         await store.delete(key);
