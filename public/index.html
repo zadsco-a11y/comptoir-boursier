@@ -6,9 +6,9 @@
 <title>Le Comptoir Boursier</title>
 <style>
   :root{
-    --bg:#1C1420; --bg-soft:#241726; --surface:#2A1D2C; --surface-hi:#372640;
-    --border:#4A3550; --gold:#C9A66B; --gold-soft:#E4CFA0; --blush:#E7B8B0;
-    --cream:#F6EFE7; --muted:#B9A6B0; --pos:#8FB79A; --neg:#C77B6C; --live:#7FD1A6;
+    --bg:#0F1B18; --bg-soft:#152420; --surface:#1B2E28; --surface-hi:#243D35;
+    --border:#365349; --gold:#3ECF8E; --gold-soft:#8FE6BC; --blush:#F2A65A;
+    --cream:#EAF3EF; --muted:#8FA79D; --pos:#3ECF8E; --neg:#E2685C; --live:#3ECF8E;
   }
   *{box-sizing:border-box;}
   body{
@@ -24,23 +24,23 @@
   .eyebrow{ font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--gold); margin:0 0 6px; }
   h1{ font-family:Georgia,serif; font-weight:400; font-size:22px; margin:0; letter-spacing:.02em; }
   .subtitle{ font-size:12px; color:var(--muted); margin:6px 0 0; }
-  .live-pill{ display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--live); border:1px solid rgba(127,209,166,.35); background:rgba(127,209,166,.08); padding:4px 10px; border-radius:999px; }
+  .live-pill{ display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--live); border:1px solid rgba(62,207,142,.35); background:rgba(62,207,142,.08); padding:4px 10px; border-radius:999px; }
   .live-dot{ width:6px; height:6px; border-radius:50%; background:var(--live); animation:pulse 1.6s infinite; }
   @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.3;} }
   .disclaimer{
     margin:14px 20px; padding:9px 12px; border-radius:12px; font-size:11px;
-    background:rgba(201,166,107,.1); border:1px solid var(--border); color:var(--gold-soft);
+    background:rgba(62,207,142,.1); border:1px solid var(--border); color:var(--gold-soft);
     display:flex; gap:8px; align-items:center;
   }
   .content{ padding:0 20px; }
   .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
-  .hero-card{ background:linear-gradient(135deg,var(--surface-hi),var(--surface)); border:1px solid rgba(201,166,107,.33); border-radius:18px; padding:20px; margin-bottom:16px; }
+  .hero-card{ background:linear-gradient(135deg,var(--surface-hi),var(--surface)); border:1px solid rgba(62,207,142,.33); border-radius:18px; padding:20px; margin-bottom:16px; }
   .muted{ color:var(--muted); font-size:12px; }
   .netvalue{ font-family:Georgia,serif; font-size:30px; color:var(--gold); }
   .row{ display:flex; align-items:center; justify-content:space-between; }
   .badge{ font-size:12px; font-weight:600; padding:2px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:4px; }
-  .badge.up{ color:var(--pos); background:rgba(143,183,154,.12); }
-  .badge.down{ color:var(--neg); background:rgba(199,123,108,.12); }
+  .badge.up{ color:var(--pos); background:rgba(62,207,142,.12); }
+  .badge.down{ color:var(--neg); background:rgba(226,104,92,.12); }
   .stat-row{ display:flex; gap:24px; margin-top:14px; }
   .cta{ width:100%; border:none; border-radius:16px; padding:14px; font-size:15px; font-weight:600; background:var(--gold); color:var(--bg); cursor:pointer; }
   .stock-item{ padding:14px; border-bottom:1px solid var(--border); cursor:pointer; }
@@ -92,7 +92,7 @@
   .link-btn{ background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; text-decoration:underline; margin-top:22px; }
 
   /* --- écrans administrateur --- */
-  .a-warn{ font-size:11px; color:var(--gold-soft); background:rgba(201,166,107,.08); border:1px solid var(--border); border-radius:10px; padding:9px 12px; margin:14px 20px; }
+  .a-warn{ font-size:11px; color:var(--gold-soft); background:rgba(62,207,142,.08); border:1px solid var(--border); border-radius:10px; padding:9px 12px; margin:14px 20px; }
   .a-tabs{ display:flex; gap:6px; margin:18px 20px 16px; border-bottom:1px solid var(--border); }
   .a-tab-btn{ background:none; border:none; color:var(--muted); font-size:13px; padding:10px 4px; margin-right:18px; cursor:pointer; border-bottom:2px solid transparent; }
   .a-tab-btn.active{ color:var(--gold); border-bottom-color:var(--gold); }
@@ -148,10 +148,11 @@ const DEFAULT_CONFIG = {
   startCash: 500000,
   tickIntervalSec: 4,
   volatility: 0.06,
+  showLeaderboard: true,
   marketStartTime: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
-const SECTOR_FALLBACK = { Parfum:"#E7B8B0", Soin:"#8FB79A", Maquillage:"#C9A66B", Capillaire:"#B79CC9" };
+const SECTOR_FALLBACK = { Parfum:"#F2A65A", Soin:"#3ECF8E", Maquillage:"#E88FA0", Capillaire:"#B98AE0" };
 
 /* ---------------- ÉTAT GLOBAL ---------------- */
 let screen = "role";        // role | adminAuth | login | loading | app | admin
@@ -162,13 +163,16 @@ let config = null;
 let myId = null, myName = null, trainee = null;
 let traineeTab = "accueil", expanded = null, qty = 1, sellQtyMap = {};
 let traineeTickTimer = null, traineePollTimer = null;
+let leaderboard = [];
 
 // administrateur
 let adminTab = "stagiaires";
 let trainees = [];
 let expandedTrainee = null;
+let adminSearch = "";
 let draft = null;
 let adminRefreshTimer = null;
+let adminMessages = [];
 
 /* ---------------- UTILITAIRES ---------------- */
 function fmt(n){ return Math.round(n).toLocaleString("fr-FR") + " XOF"; }
@@ -202,6 +206,11 @@ function mulberry32(seed){
     t = (t + Math.imul(t ^ t >>> 7, 61 | t)) ^ t;
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
+}
+async function hashPin(id, pin){
+  const data = new TextEncoder().encode("comptoir-boursier|" + id + "|" + pin);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
 /* ---------------- MARCHÉ (déterministe, partagé par tout le monde) ---------------- */
@@ -264,6 +273,43 @@ async function apiDelete(path){
   if(!res.ok) throw new Error("HTTP " + res.status);
   return await res.json();
 }
+// Ces trois fonctions envoient le code administrateur au serveur, qui vérifie
+// lui-même sa validité — donc même en devinant l'adresse d'une fonction, un
+// visiteur ne peut pas changer les paramètres ou effacer des stagiaires
+// sans connaître le vrai code.
+async function apiAdminGet(path){
+  const res = await fetch(API_BASE + path, { headers:{ "x-admin-passcode": ADMIN_PASSCODE } });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
+async function apiAdminPut(path, body){
+  const res = await fetch(API_BASE + path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "x-admin-passcode": ADMIN_PASSCODE },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
+async function apiAdminDelete(path){
+  const res = await fetch(API_BASE + path, { method:"DELETE", headers:{ "x-admin-passcode": ADMIN_PASSCODE } });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
+async function apiPost(path, body){
+  const res = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
+async function apiAdminPutNoBody(path){
+  const res = await fetch(API_BASE + path, { method:"PUT", headers:{ "x-admin-passcode": ADMIN_PASSCODE } });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
 
 /* ---------------- STOCKAGE PARTAGÉ (via le serveur) ---------------- */
 async function ensureConfig(){
@@ -317,6 +363,7 @@ async function checkAdminPasscode(value){
   screen = "loading"; render();
   await ensureConfig();
   await loadTrainees();
+  await loadMessages();
   draft = structuredClone(config);
   screen = "admin"; adminTab = "stagiaires";
   startAdminRefresh();
@@ -327,26 +374,39 @@ window.checkAdminPasscode=checkAdminPasscode;
 /* =========================================================================
    CÔTÉ STAGIAIRE
    ========================================================================= */
-async function loadOrCreateTrainee(){
-  try{
-    trainee = await apiGet("/api/trainee/" + encodeURIComponent(myId));
-  }catch(e){
-    trainee = { id:myId, name:myName, cash:config.startCash, holdings:{}, transactions:[], createdAt:Date.now(), updatedAt:Date.now() };
-    await saveTrainee();
+async function loadOrCreateTrainee(pinHash, phone){
+  let existing = null;
+  try{ existing = await apiGet("/api/trainee/" + encodeURIComponent(myId)); }catch(e){ existing = null; }
+  if(existing){
+    if(existing.pinHash !== pinHash) return "wrong-pin";
+    trainee = existing;
+    return "ok";
   }
+  trainee = { id:myId, name:myName, pinHash, phone: phone||"", cash:config.startCash, holdings:{}, transactions:[], createdAt:Date.now(), updatedAt:Date.now() };
+  await saveTrainee();
+  return "ok";
 }
 async function saveTrainee(){
   trainee.updatedAt = Date.now();
   try{ await apiPut("/api/trainee/" + encodeURIComponent(myId), trainee); }
   catch(e){ console.error("Erreur de sauvegarde", e); }
 }
-async function startSession(name){
-  const clean = name.trim();
+async function startSession(name, pin, phone){
+  const clean = (name||"").trim();
+  const cleanPin = (pin||"").trim();
   if(!clean){ loginError = "Entrez un pseudo pour continuer."; render(); return; }
+  if(!/^\d{4}$/.test(cleanPin)){ loginError = "Le code PIN doit contenir exactement 4 chiffres."; render(); return; }
   myName = clean; myId = slugify(clean);
   screen = "loading"; render();
   await ensureConfig();
-  await loadOrCreateTrainee();
+  const pinHash = await hashPin(myId, cleanPin);
+  const result = await loadOrCreateTrainee(pinHash, (phone||"").trim());
+  if(result === "wrong-pin"){
+    myId = null; myName = null;
+    screen = "login";
+    loginError = "Ce pseudo est déjà utilisé avec un autre code PIN. Choisissez un autre pseudo, ou entrez le bon code.";
+    render(); return;
+  }
   screen = "app"; traineeTab = "accueil";
   startTraineeLoops();
   render();
@@ -364,9 +424,14 @@ function startTraineeLoops(){
   traineePollTimer = setInterval(async ()=>{
     if(screen!=="app") return;
     try{ config = await apiGet("/api/config"); }catch(e){}
+    if(traineeTab==="classement") await loadLeaderboard();
   }, 5000);
 }
 function stopTraineeLoops(){ clearInterval(traineeTickTimer); clearInterval(traineePollTimer); }
+async function loadLeaderboard(){
+  try{ leaderboard = await apiGet("/api/leaderboard"); }
+  catch(e){ leaderboard = []; }
+}
 
 function portfolioValue(stocks){
   return stocks.reduce((sum,s)=>{
@@ -409,10 +474,25 @@ async function sell(symbol, quantity){
 }
 async function resetGame(){
   if(!confirm("Réinitialiser votre partie et repartir avec le solde de départ ?")) return;
-  trainee = { id:myId, name:myName, cash:config.startCash, holdings:{}, transactions:[], createdAt:Date.now(), updatedAt:Date.now() };
+  trainee = { id:myId, name:myName, pinHash:trainee.pinHash, phone:trainee.phone||"", cash:config.startCash, holdings:{}, transactions:[], createdAt:Date.now(), updatedAt:Date.now() };
   traineeTab = "accueil";
   await saveTrainee(); render();
   showToast("Partie réinitialisée.");
+}
+async function updateMyPhone(value){
+  trainee.phone = value.trim();
+  await saveTrainee();
+  showToast("Numéro de téléphone enregistré.");
+}
+async function sendMessageToAdmin(text){
+  const clean = (text||"").trim();
+  if(!clean){ showToast("Écrivez un message avant d'envoyer."); return; }
+  try{
+    await apiPost("/api/messages", { traineeId: myId, traineeName: myName, text: clean });
+    const box = document.getElementById("message-textarea");
+    if(box) box.value = "";
+    showToast("Message envoyé au formateur.");
+  }catch(e){ showToast("Erreur d'envoi du message."); }
 }
 
 /* ---------------- MINI GRAPHIQUES SVG ---------------- */
@@ -449,6 +529,7 @@ const ICONS = {
   down:`<svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/></svg>`,
   reset:`<svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>`,
   grad:`<svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M22 10 12 4 2 10l10 6 10-6Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg>`,
+  trophy:`<svg class="icon" viewBox="0 0 24 24"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 5H4v2a4 4 0 0 0 4 4"/><path d="M16 5h4v2a4 4 0 0 1-4 4"/><path d="M12 13v4"/><path d="M9 20h6"/><path d="M9 17h6v3H9z"/></svg>`,
 };
 function badge(value){
   const up = value>=0;
@@ -461,10 +542,13 @@ function renderLoginScreen(){
     <p class="eyebrow" style="text-align:center;">Le Comptoir Boursier</p>
     <h1 style="text-align:center;margin-bottom:20px;">Espace entraînement</h1>
     <div class="login-card">
-      <p class="muted">Entrez votre pseudo pour commencer ou reprendre votre partie.</p>
-      <input id="pseudo-input" class="login-input" type="text" placeholder="Votre pseudo" maxlength="40" onkeydown="if(event.key==='Enter')startSession(this.value)"/>
+      <p class="muted">Entrez votre pseudo et un code à 4 chiffres. La première fois, ce code crée votre partie ; ensuite, il la protège — personne d'autre ne pourra y accéder sans le connaître.</p>
+      <input id="pseudo-input" class="login-input" type="text" placeholder="Votre pseudo" maxlength="40" onkeydown="if(event.key==='Enter')document.getElementById('pin-input').focus()"/>
+      <input id="pin-input" class="login-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Code PIN à 4 chiffres" style="margin-top:-6px;" onkeydown="if(event.key==='Enter')document.getElementById('phone-input').focus()"/>
+      <input id="phone-input" class="login-input" type="tel" placeholder="Numéro de téléphone (optionnel)" style="margin-top:-6px;" onkeydown="if(event.key==='Enter')startSession(document.getElementById('pseudo-input').value, document.getElementById('pin-input').value, this.value)"/>
+      <p class="muted" style="font-size:11px;margin:-12px 0 16px;">Le numéro permet au formateur de vous contacter en cas de besoin. Laissez vide si vous préférez ne pas le donner.</p>
       ${loginError?`<p style="color:var(--neg);font-size:12px;margin:-10px 0 12px;">${esc(loginError)}</p>`:""}
-      <button class="cta" onclick="startSession(document.getElementById('pseudo-input').value)">Commencer</button>
+      <button class="cta" onclick="startSession(document.getElementById('pseudo-input').value, document.getElementById('pin-input').value, document.getElementById('phone-input').value)">Commencer</button>
       <button class="link-btn" onclick="goToRole()">← Retour</button>
     </div>
   </div>`;
@@ -513,7 +597,7 @@ function renderMarche(stocks){
   const items = stocks.map(s=>{
     const isOpen = expanded===s.symbol;
     const chg = ((s.history.at(-1)-s.history[0])/s.history[0])*100;
-    const color = chg>=0? "#8FB79A":"#C77B6C";
+    const color = chg>=0? "#3ECF8E":"#E2685C";
     let detail = "";
     if(isOpen){
       const cost = s.price*qty;
@@ -606,7 +690,7 @@ function renderCompte(stocks){
     <div class="card tx-item">
       <div class="row" style="font-size:13px;">
         <div>
-          <span style="color:${t.type==='achat'?'#8FB79A':'#C77B6C'}">${t.type==='achat'?'Achat':'Vente'}</span>
+          <span style="color:${t.type==='achat'?'#3ECF8E':'#E2685C'}">${t.type==='achat'?'Achat':'Vente'}</span>
           <span class="muted"> · ${esc(t.name)}</span>
         </div>
         <span>${fmt(t.total)}</span>
@@ -620,6 +704,15 @@ function renderCompte(stocks){
       <p style="font-size:16px;">${esc(trainee.name)}</p>
       <p class="muted" style="margin-top:4px;">Valeur nette actuelle : ${fmt(netWorth(stocks))}</p>
     </div>
+    <div class="card">
+      <label class="a-field-label">Numéro de téléphone (pour que le formateur puisse vous joindre)</label>
+      <input id="phone-edit-input" class="a-field-input" type="tel" placeholder="Aucun numéro renseigné" value="${esc(trainee.phone||'')}" onchange="updateMyPhone(this.value)">
+    </div>
+    <div class="card">
+      <p style="font-size:14px;margin:0 0 8px;">✉️ Écrire au formateur</p>
+      <textarea id="message-textarea" class="a-field-input" rows="3" placeholder="Une question, un blocage ? Écrivez ici…" style="resize:vertical;"></textarea>
+      <button class="a-primary-btn" style="margin-top:10px;width:100%;" onclick="sendMessageToAdmin(document.getElementById('message-textarea').value)">Envoyer au formateur</button>
+    </div>
     <h3 style="font-size:14px;">Historique des transactions</h3>
     ${txs}
     <button class="reset-btn" onclick="resetGame()">${ICONS.reset} Réinitialiser ma partie</button>
@@ -630,8 +723,32 @@ function renderCompte(stocks){
     </p>
   </div>`;
 }
+function renderClassement(stocks){
+  const ranked = leaderboard.map(t=>{
+    const pv = stocks.reduce((sum,s)=>{ const h=t.holdings?.[s.symbol]; return sum + (h?h.qty*s.price:0); },0);
+    return { name:t.name, nw: t.cash + pv };
+  }).sort((a,b)=>b.nw-a.nw);
+  const rows = ranked.map((r,i)=>`
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;${r.name===trainee.name?`border-color:var(--gold);`:""}">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="mono" style="color:var(--muted);width:20px;">${i+1}</span>
+        <span>${esc(r.name)}${r.name===trainee.name?" (vous)":""}</span>
+      </div>
+      <span class="mono">${fmt(r.nw)}</span>
+    </div>`).join("") || `<p class="muted">Aucun stagiaire à classer pour l'instant.</p>`;
+  return `
+  <div class="content">
+    <h2 style="font-size:17px;">Classement en direct</h2>
+    <p class="muted" style="margin-top:-6px;">Basé sur la valeur nette (liquidités + portefeuille) de tous les stagiaires.</p>
+    ${rows}
+  </div>`;
+}
 
-function setTraineeTab(t){ traineeTab=t; expanded=null; render(); }
+function setTraineeTab(t){
+  traineeTab=t; expanded=null;
+  if(t==="classement") loadLeaderboard().then(render);
+  render();
+}
 function toggleExpand(symbol){ expanded = expanded===symbol? null : symbol; qty=1; render(); }
 function changeQty(delta){ qty = Math.max(1, qty+delta); render(); }
 function changeSellQty(symbol, delta, max){
@@ -641,6 +758,7 @@ function changeSellQty(symbol, delta, max){
 }
 window.setTraineeTab=setTraineeTab; window.toggleExpand=toggleExpand; window.changeQty=changeQty;
 window.changeSellQty=changeSellQty; window.buy=buy; window.sell=sell; window.resetGame=resetGame;
+window.updateMyPhone=updateMyPhone; window.sendMessageToAdmin=sendMessageToAdmin;
 window.startSession=startSession; window.switchTrainee=switchTrainee;
 
 function renderTraineeApp(){
@@ -649,6 +767,7 @@ function renderTraineeApp(){
   const body = traineeTab==="accueil"?renderAccueil(stocks)
     : traineeTab==="marche"?renderMarche(stocks)
     : traineeTab==="portefeuille"?renderPortefeuille(stocks)
+    : traineeTab==="classement"?renderClassement(stocks)
     : renderCompte(stocks);
   return `
     <div class="header">
@@ -664,6 +783,7 @@ function renderTraineeApp(){
         <button class="nav-btn ${traineeTab==='accueil'?'active':''}" onclick="setTraineeTab('accueil')">${ICONS.home}<span>Accueil</span></button>
         <button class="nav-btn ${traineeTab==='marche'?'active':''}" onclick="setTraineeTab('marche')">${ICONS.bag}<span>Marché</span></button>
         <button class="nav-btn ${traineeTab==='portefeuille'?'active':''}" onclick="setTraineeTab('portefeuille')">${ICONS.wallet}<span>Portefeuille</span></button>
+        ${config.showLeaderboard?`<button class="nav-btn ${traineeTab==='classement'?'active':''}" onclick="setTraineeTab('classement')">${ICONS.trophy}<span>Classement</span></button>`:""}
         <button class="nav-btn ${traineeTab==='compte'?'active':''}" onclick="setTraineeTab('compte')">${ICONS.user}<span>Compte</span></button>
       </div>
     </div>`;
@@ -674,37 +794,87 @@ function renderTraineeApp(){
    ========================================================================= */
 async function loadTrainees(){
   try{
-    trainees = await apiGet("/api/trainees");
+    trainees = await apiAdminGet("/api/trainees");
   }catch(e){ trainees = []; }
 }
 async function saveConfig(newConfig, restartMarket){
   config = { ...newConfig, updatedAt: new Date().toISOString() };
   if(restartMarket) config.marketStartTime = new Date().toISOString();
   try{
-    await apiPut("/api/config", { config, restart: !!restartMarket });
+    await apiAdminPut("/api/config", { config, restart: !!restartMarket });
     showToast(restartMarket? "Paramètres enregistrés — marché redémarré." : "Paramètres enregistrés.");
   }catch(e){ showToast("Erreur d'enregistrement."); }
   render();
 }
 async function deleteTrainee(id){
   if(!confirm("Réinitialiser ce stagiaire ? Sa progression sera effacée.")) return;
-  try{ await apiDelete("/api/trainee/" + encodeURIComponent(id)); }catch(e){}
+  try{ await apiAdminDelete("/api/trainee/" + encodeURIComponent(id)); }catch(e){}
   await loadTrainees(); render();
   showToast("Stagiaire réinitialisé.");
 }
 async function deleteAllTrainees(){
   if(!confirm(`Réinitialiser TOUS les stagiaires (${trainees.length}) ? Cette action est irréversible.`)) return;
-  try{ await apiDelete("/api/trainees"); }catch(e){}
+  try{ await apiAdminDelete("/api/trainees"); }catch(e){}
   await loadTrainees(); render();
   showToast("Tous les stagiaires ont été réinitialisés.");
+}
+async function refreshTrainees(){
+  await loadTrainees(); render();
+  showToast("Liste actualisée.");
+}
+async function updateTraineePhone(id, phone){
+  const t = trainees.find(x=>x.id===id);
+  if(!t) return;
+  const updated = { ...t, phone: phone.trim(), updatedAt: Date.now() };
+  try{
+    await apiPut("/api/trainee/" + encodeURIComponent(id), updated);
+    await loadTrainees(); render();
+    showToast("Numéro de téléphone mis à jour.");
+  }catch(e){ showToast("Erreur d'enregistrement."); }
+}
+function exportTraineesCSV(){
+  const stocks = liveStocksWithHistory();
+  const header = "Pseudo;Téléphone;Liquidités;Valeur du portefeuille;Valeur nette;Nombre de transactions\n";
+  const rows = trainees.map(t=>{
+    const pv = stocks.reduce((sum,s)=>{ const h=t.holdings?.[s.symbol]; return sum + (h?h.qty*s.price:0); },0);
+    const nw = t.cash + pv;
+    return [t.name, t.phone||"", Math.round(t.cash), Math.round(pv), Math.round(nw), (t.transactions||[]).length].join(";");
+  }).join("\n");
+  const blob = new Blob([header + rows], { type:"text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "comptoir-boursier-stagiaires.csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 function startAdminRefresh(){
   clearInterval(adminRefreshTimer);
   adminRefreshTimer = setInterval(async ()=>{
-    if(screen==="admin" && adminTab==="stagiaires"){ await loadTrainees(); render(); }
+    if(screen!=="admin") return;
+    if(adminTab==="stagiaires") await loadTrainees();
+    await loadMessages();
+    render();
   }, 5000);
 }
 function stopAdminRefresh(){ clearInterval(adminRefreshTimer); }
+async function loadMessages(){
+  try{ adminMessages = await apiAdminGet("/api/messages"); }
+  catch(e){ adminMessages = []; }
+}
+async function markMessageRead(id){
+  try{ await apiAdminPutNoBody("/api/message/" + encodeURIComponent(id)); }catch(e){}
+  await loadMessages(); render();
+}
+async function deleteMessage(id){
+  try{ await apiAdminDelete("/api/message/" + encodeURIComponent(id)); }catch(e){}
+  await loadMessages(); render();
+}
+async function deleteAllMessages(){
+  if(!confirm("Supprimer tous les messages reçus ?")) return;
+  try{ await apiAdminDelete("/api/messages"); }catch(e){}
+  await loadMessages(); render();
+  showToast("Messages supprimés.");
+}
 
 function trainNetWorth(t, stocks){
   const pv = Object.entries(t.holdings||{}).reduce((sum,[sym,h])=>{
@@ -714,12 +884,19 @@ function trainNetWorth(t, stocks){
   return t.cash + pv;
 }
 
-function setAdminTab(t){ adminTab=t; if(t==="parametres") draft = structuredClone(config); render(); }
+function setAdminTab(t){
+  adminTab=t;
+  if(t==="parametres") draft = structuredClone(config);
+  if(t==="messages") loadMessages().then(render);
+  render();
+}
+function setAdminSearch(v){ adminSearch = v; render(); }
 function toggleTrainee(id){ expandedTrainee = expandedTrainee===id? null : id; render(); }
 function updateDraftField(field, value){
   if(field==="startCash") draft.startCash = Math.max(0, Number(value)||0);
   if(field==="tickIntervalSec") draft.tickIntervalSec = Math.max(1, Number(value)||1);
   if(field==="volatility") draft.volatility = Math.max(0, Math.min(1, Number(value)||0));
+  if(field==="showLeaderboard") draft.showLeaderboard = !!value;
   render();
 }
 function updateStockField(idx, field, value){
@@ -740,11 +917,17 @@ function saveDraft(restart){
 window.setAdminTab=setAdminTab; window.toggleTrainee=toggleTrainee; window.updateDraftField=updateDraftField;
 window.updateStockField=updateStockField; window.addStockRow=addStockRow; window.removeStockRow=removeStockRow;
 window.saveDraft=saveDraft; window.deleteTrainee=deleteTrainee; window.deleteAllTrainees=deleteAllTrainees;
+window.setAdminSearch=setAdminSearch; window.refreshTrainees=refreshTrainees; window.exportTraineesCSV=exportTraineesCSV;
+window.updateTraineePhone=updateTraineePhone;
+window.loadMessages=loadMessages; window.markMessageRead=markMessageRead; window.deleteMessage=deleteMessage; window.deleteAllMessages=deleteAllMessages;
 
 function renderStagiairesTab(){
   const stocks = liveStocksPriceOnly();
-  const withNw = trainees.map(t=>({ t, nw: trainNetWorth(t, stocks) })).sort((a,b)=>b.nw-a.nw);
-  const avgNw = trainees.length? withNw.reduce((s,x)=>s+x.nw,0)/trainees.length : 0;
+  const searched = adminSearch.trim()
+    ? trainees.filter(t => t.name.toLowerCase().includes(adminSearch.trim().toLowerCase()))
+    : trainees;
+  const withNw = searched.map(t=>({ t, nw: trainNetWorth(t, stocks) })).sort((a,b)=>b.nw-a.nw);
+  const avgNw = trainees.length? trainees.reduce((s,t)=>s+trainNetWorth(t,stocks),0)/trainees.length : 0;
   const active5 = trainees.filter(t=>Date.now()-t.updatedAt < 5*60*1000).length;
 
   const statCards = `
@@ -753,10 +936,18 @@ function renderStagiairesTab(){
     <div class="a-stat-card"><div class="a-stat-label">Actifs (5 min)</div><div class="a-stat-value mono">${active5}</div></div>
     <div class="a-stat-card"><div class="a-stat-label">Valeur nette moyenne</div><div class="a-stat-value mono">${fmt(avgNw)}</div></div>
     <div class="a-stat-card"><div class="a-stat-label">Jour boursier</div><div class="a-stat-value mono">${currentTick()+1}</div></div>
+  </div>
+  <div class="a-btn-row" style="margin-bottom:14px;">
+    <input class="a-field-input" style="flex:1;min-width:160px;" placeholder="Rechercher un stagiaire…" value="${esc(adminSearch)}" oninput="setAdminSearch(this.value)"/>
+    <button class="a-ghost-btn" onclick="refreshTrainees()">${ICONS.reset} Actualiser</button>
+    <button class="a-ghost-btn" onclick="exportTraineesCSV()">Exporter en CSV</button>
   </div>`;
 
   if(trainees.length===0){
     return `${statCards}<div class="empty">Aucun stagiaire n'a encore rejoint la partie.<br>Partagez ce même lien : ils choisiront « Je suis stagiaire ».</div>`;
+  }
+  if(withNw.length===0){
+    return `${statCards}<div class="empty">Aucun stagiaire ne correspond à « ${esc(adminSearch)} ».</div>`;
   }
 
   const cards = withNw.map(({t,nw})=>{
@@ -771,9 +962,18 @@ function renderStagiairesTab(){
     ).join("") || `<tr><td colspan="4" class="mono" style="color:var(--muted)">Aucune transaction</td></tr>`;
     let detail = "";
     if(open){
+      const phoneDigits = (t.phone||"").replace(/[^\d+]/g,"");
       detail = `
       <div class="a-trainee-detail">
-        <div class="a-section-title" style="margin-top:0;">Positions</div>
+        <div class="a-section-title" style="margin-top:0;">Contact</div>
+        <div class="a-field-row" style="margin-bottom:8px;">
+          <input class="a-field-input" type="tel" placeholder="Aucun numéro renseigné" value="${esc(t.phone||'')}" onchange="updateTraineePhone('${t.id}', this.value)">
+        </div>
+        ${phoneDigits?`<div class="a-btn-row" style="margin-bottom:6px;">
+          <a class="a-ghost-btn" style="text-decoration:none;text-align:center;" href="tel:${phoneDigits}">📞 Appeler</a>
+          <a class="a-ghost-btn" style="text-decoration:none;text-align:center;" href="https://wa.me/${phoneDigits.replace('+','')}" target="_blank" rel="noopener">WhatsApp</a>
+        </div>`:""}
+        <div class="a-section-title">Positions</div>
         <table class="a-mini-table"><thead><tr><th>Action</th><th>Qté</th><th>PRU</th><th>Prix</th></tr></thead><tbody>${holdingsRows}</tbody></table>
         <div class="a-section-title">Dernières transactions</div>
         <table class="a-mini-table"><thead><tr><th>Type</th><th>Action</th><th>Qté</th><th>Total</th></tr></thead><tbody>${txRows}</tbody></table>
@@ -785,7 +985,7 @@ function renderStagiairesTab(){
       <div class="a-trainee-top" onclick="toggleTrainee('${t.id}')">
         <div>
           <div>${esc(t.name)}</div>
-          <div class="a-trainee-meta">Mis à jour ${timeAgo(t.updatedAt)}</div>
+          <div class="a-trainee-meta">Mis à jour ${timeAgo(t.updatedAt)}${t.phone?` · ${esc(t.phone)}`:""}</div>
         </div>
         <div style="text-align:right;">
           <div class="mono">${fmt(nw)}</div>
@@ -802,6 +1002,31 @@ function renderStagiairesTab(){
     <div class="a-btn-row" style="margin-top:10px;">
       <button class="a-ghost-btn" onclick="deleteAllTrainees()">Réinitialiser tous les stagiaires</button>
     </div>`;
+}
+function renderMessagesTab(){
+  if(adminMessages.length===0){
+    return `<div class="empty">Aucun message pour l'instant.<br>Les stagiaires peuvent vous écrire depuis leur onglet « Compte ».</div>`;
+  }
+  const items = adminMessages.map(m=>`
+    <div class="a-trainee-card" style="padding:14px 16px;${m.read?"":"border-color:var(--gold);"}">
+      <div class="row" style="align-items:flex-start;">
+        <div>
+          <div style="font-size:14px;">${esc(m.traineeName)}${m.read?"":" 🔵"}</div>
+          <div class="a-trainee-meta">${timeAgo(m.createdAt)}</div>
+        </div>
+      </div>
+      <p style="margin:10px 0 0;font-size:14px;white-space:pre-wrap;">${esc(m.text)}</p>
+      <div class="a-btn-row" style="margin-top:10px;">
+        ${m.read?"":`<button class="a-ghost-btn" onclick="markMessageRead('${m.id}')">Marquer comme lu</button>`}
+        <button class="a-danger-btn" onclick="deleteMessage('${m.id}')">Supprimer</button>
+      </div>
+    </div>`).join("");
+  return `
+    <div class="a-btn-row" style="margin-bottom:14px;">
+      <button class="a-ghost-btn" onclick="loadMessages().then(render)">${ICONS.reset} Actualiser</button>
+      <button class="a-ghost-btn" onclick="deleteAllMessages()">Tout supprimer</button>
+    </div>
+    ${items}`;
 }
 function renderParametresTab(){
   const stockRows = draft.stocks.map((s,i)=>`
@@ -831,6 +1056,13 @@ function renderParametresTab(){
     </div>
   </div>
   <div class="card">
+    <div class="a-section-title" style="margin-top:0;">Expérience stagiaire</div>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" ${draft.showLeaderboard?"checked":""} onchange="updateDraftField('showLeaderboard', this.checked)" style="width:16px;height:16px;">
+      Afficher un classement en direct aux stagiaires (pseudo et valeur nette, sans les liquidités détaillées)
+    </label>
+  </div>
+  <div class="card">
     <div class="a-section-title" style="margin-top:0;">Actions cotées</div>
     <table class="a-stock-table">
       <thead><tr><th>Symbole</th><th>Nom</th><th>Secteur</th><th>Prix</th><th></th></tr></thead>
@@ -845,6 +1077,7 @@ function renderParametresTab(){
   <p class="a-warn">Redémarrer le marché remet le « jour boursier » à 1 pour tout le monde et recalcule les prix à partir des valeurs ci-dessus. Les portefeuilles des stagiaires ne sont pas effacés.</p>`;
 }
 function renderAdminApp(){
+  const unread = adminMessages.filter(m=>!m.read).length;
   return `
     <div class="header wide-header">
       <div>
@@ -859,10 +1092,11 @@ function renderAdminApp(){
     </p>
     <div class="a-tabs">
       <button class="a-tab-btn ${adminTab==='stagiaires'?'active':''}" onclick="setAdminTab('stagiaires')">Stagiaires</button>
+      <button class="a-tab-btn ${adminTab==='messages'?'active':''}" onclick="setAdminTab('messages')">Messages${unread?` (${unread})`:""}</button>
       <button class="a-tab-btn ${adminTab==='parametres'?'active':''}" onclick="setAdminTab('parametres')">Paramètres</button>
     </div>
     <div class="content" style="padding:0 20px;">
-      ${adminTab==='stagiaires'? renderStagiairesTab() : renderParametresTab()}
+      ${adminTab==='stagiaires'? renderStagiairesTab() : adminTab==='messages'? renderMessagesTab() : renderParametresTab()}
     </div>
     <div id="toast" class="toast"></div>`;
 }
